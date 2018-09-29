@@ -12,10 +12,11 @@ GN = 99  #GN sera o numero do grupo
 HOST = socket.gethostname()
 PORT = 58000 +GN
 
-
-
 #dicionario com o username como key
-users = {"12345":"aaaaaaaa"}        #utilizador para teste
+# taamebem tem info de se tem ficheiros no BS ou nao para
+#quando faz o pedido de deluser validar logo se e possivel
+users = dict()
+users = {"12345":["aaaaaaaa"],}        #utilizador para teste
 
 #dicionario com o ip dos BS como key
 BS = {}
@@ -81,14 +82,35 @@ def parse():
 		
 		elif(data[0] == "DLU"):
 			print "DLU"
+
+		# tem de se fazer verificacao se pedido esta ok ou nao
 		elif(data[0] == "BCK"):
-			print 'BCK ' + current_user + ' ' + str(data[1]) + ' ' + str(IPBS)+' '+str(portBS)
+			num_files = str(data[2])
+			i = 3
+			file_lst = ''
+			#users[current_user].append(1) # 1 == user has files stored in BS
+			#verifies num files < 20 and stores the list to resend to user
+			if (num_files <= 20):
+				while i < num_files:
+					file_lst = file_lst + str(data[i])
+					i = i + 1
+			else:
+				while i < 20:
+					file_lst = file_lst + str(data[i])
+					i = i + 1
+			
+			print 'BCK ' + current_user + ' ' + str(data[1]) + ' ' + str(IPBS) + ' '+str(portBS) 
 			#send request LSU to BS
 			send_request = 'LSU ' + current_user + current_pass
 			#sockBS.sendto(send_request, address)
 			#dataBS, address = sockBS.recvfrom(4096) #LUR OK
 
-			m = 'BKR '+str(IPBS)+' '+str(portBS) + ' '+ str(data[2])
+			#if (dataBS == 'LUR OK'):
+			m = 'BKR '+str(IPBS)+' '+str(portBS) + ' '+ num_files + ' ' + file_lst
+				
+			#elif (dataBS == 'LUR NOK'):
+				#m = 'BKR EOF' #no more space in existing BS
+			# else if o formato do pedido estiver mal BKR ERR
 			conn.sendall(m)
 		elif(data[0] =="RST"):
 			print "RST"
@@ -140,7 +162,7 @@ def parse():
 					print file_name + ' ' + date + ' ' + size
 					i = i + 4
 		elif (commandBS[0] == 'LUR'):
-			if (commandBS[1]!= 'OK\n'):
+			if (commandBS[1] != 'OK\n'):
 				print 'LUR ERR'
 		elif (commandBS[0] == 'DBR'):
 			if (commandBS[1]!= 'OK\n'):
