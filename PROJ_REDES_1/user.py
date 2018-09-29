@@ -62,12 +62,12 @@ def parse():
 			data = str(s.recv(16))
 			if (data == "AUR NEW"):
 				print 'User: ' + '\"' + username + '\"' + ' created'
-		
+
 		elif(list_str[0] == "deluser"):
+
 			print "deluser"
 		elif(list_str[0] == "backup"):
 			#first login
-			
 			newlogin = "AUT "+str(user)+" "+str(passw)+"\n"
 			s.sendall(newlogin)
 			data = s.recv(16) #AUR OK
@@ -77,14 +77,51 @@ def parse():
 			s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 			s.connect((HOST	, PORT))
 
+			#enviar pedido BCK ao CS
+			name_dir = list_str[1]
 			askCS = str(backup_request(list_str[1]))
 			s.sendall(askCS)
-			data = s.recv(4098)
+			data = s.recv(4098)  #autorizacao do CS + port e IP do BS
 			print data
 			replyCS = data.split()
-			IPBS = int(replyCS[1])
-			portBS = int(replyCS[2])
-		
+			if (replyCS[1] != 'EOF' and replyCS[1] != 'ERR'):
+				IPBS = int(replyCS[1])
+				portBS = int(replyCS[2])
+				num_files = int (replyCS[3])
+				i = 4	
+				file_lst = ''
+				while i < num_files:
+						file_lst = file_lst + str(data[i])
+						i = i + 1
+				print 'backup to: '+ str(IPBS) + ' ' + str(portBS)
+			#connect TCP to BS
+			s.close()
+			s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+			s.connect((IPBS	, portBS))
+
+			#first login
+			newlogin = "AUT "+str(user)+" "+str(passw)+"\n"
+			s.sendall(newlogin)
+			data = s.recv(16) #AUR OK
+
+			#close and reopen socket to BS
+			s.close()
+			s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+			s.connect((IPBS	, portBS))
+
+			#request backup to BS
+			upl_request = 'UPL '+ name_dir + ' ' + num_files + ' ' + file_lst
+			s.sendall(upl_request)
+			data = s.recv(16) #UPR OK
+			#if (data == 'UPR OK'):
+			filter_names = file_lst.split()
+			i = 0
+			l = len(filter_names) 
+			while i < l:
+				fn = fn + filter_names[i] + ' '
+				i = i + 4
+			print 'completed - '+ name_dir + ':' + fn
+
 		elif(list_str[0] == "restore"):
 			print "restore"
 		elif(list_str[0] == "dirlist"):
