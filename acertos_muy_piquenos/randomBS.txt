@@ -1,0 +1,49 @@
+		#requests from BS
+
+		"""
+		#receive from BS
+		dataBS, address = sockBS.recvfrom(4096)
+		commandBS = dataBS.split()
+		print dataBS
+		"""
+'''	socket BS - CS (UDP) =========================================
+		sockBS = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+		sockBS.bind(("", PORT))
+
+		commandBS = ['so para nao dar erro']
+
+		if(commandBS[0] == "REG"): 
+			#REG IPBS portBS      
+			sockBS.sendto('RGR OK', address)
+		elif (commandBS[0] == 'UNR'):
+			IPBS = commandBS[1]
+			portBS = int(commandBS[2])
+			stop_BS_operations(IPBS , portBSs)
+		elif (commandBS[0] == 'LFD'):
+			num_files = int(commandBS[1])
+			if (num_files > 0):
+				l = len(commandBS)
+				i = 2
+				while i < l:
+					file_name = str(commandBS[i])
+					date = str(commandBS[i+1]) + str(commandBS[i+2])
+					size = str(commandBS[i+3])
+					print file_name + ' ' + date + ' ' + size
+					i = i + 4
+		elif (commandBS[0] == 'LUR'):
+			if (commandBS[1]!= 'OK\n'):
+				print 'LUR ERR'
+		elif (commandBS[0] == 'DBR'):
+			if (commandBS[1]!= 'OK\n'):
+				print 'DBR ERR'
+'''
+		"""
+		"""
+		else:
+			print "ERR"
+			print 'Received', repr(data)
+		"""
+		#conn.sendall(data)
+		s.close()
+	#sockBS.close()
+
