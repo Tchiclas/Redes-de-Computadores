@@ -1,13 +1,14 @@
 """
 everything related to the backup server 
-63
+
 """
 import socket
 import sys
 import os
+import time
 
 #numero do grupo
-GN = 94
+GN = 63
 
 BSPORT = 59000 #usar na comunicacao BS - user
 CSPORT = 58000 + GN #usar na comunicacao BS - CS
@@ -41,7 +42,7 @@ def handlerRGR(status):
 	if( status != 'OK'):
 		print 'ERR'   #QUAL E A MENSAGEM DE REGISTO NAO POSSIVEL? - CONFIRMAR
 
-def handlerLSF(user, dir, server_address):
+def handlerLSF(user, dir, server_address): #NOT DONE!!!!!!
 	#corrigir isto, para parecido com rsb
 	filelist = []
 	sock.sendto(str(filelist), server_address)
@@ -59,7 +60,7 @@ def parse():
 
 	# Create a TCP socket (user)
 	sockUser = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-	sockUser.bind(("", PORT))
+	sockUser.bind(("", BSPORT))
 	sockUser.listen(1)
 	connUser, addrUser = sockUser.accept()
 
@@ -129,53 +130,27 @@ def parse():
 				connUser.sendall('RBR ERR')
 			else:
 				directory = requestUser[1]
-				cwd = os.getcwd()
-				for file in os.listdir(cwd):
-        			if file == directory:
-            			fileExists = True
-            			break
-				#ouisto, nao sei bem
-				#dir_path = ''
-				#file = open('users_directories.txt',"r")
-				#for line in file:
-    			#	split = line.split()
-				#	if(split[1] == directory):
-				#		dir_path = directory + '.txt'
-				#		break
-				#if directory doesn't exist: 
-				#if (dir_path == ''):
-				#	connUser.sendall('RBR EOF')
-				if(not fileExists):
+				cwd = os.getcwd() #path of current working directory
+				cwd = cwd + '/' + directory
+				if(not os.path.exists(cwd)):
 					connUser.sendall('RBR EOF')
 				else:
-					cwd = cwd + '/' + directory
-					nFiles = 0
-					#list_files = []
-					os.chdir(cwd)
+					os.chdir(cwd) #open directory
 					cwd = os.getcwd()
 					list_files = os.listdir(cwd)
 					nFiles = len(list_files)
-					element = 'RBR ' + str(nFiles) + ' '
+					element = 'RBR ' + str(nFiles) + ' ' #reply
 					connUser.sendall(element)
-					for file in os.listdir(cwd):
+					for file in list_files:
 						created= os.stat(file).st_ctime
-						date_time = datetime.datetime.fromtimestamp(created)
 						size = os.stat(file).st_size
-						string = str(date_time).split()
-						date = string[0][8]+string[0][9]+'.'+string[0][5]+string[0][6]+'.'+string[0][0]+string[0][1]+string[0][2]+string[0][3]
-						time = string[1][0]+string[1][1]+string[1][2]+string[1][3]+string[1][4]+string[1][5]+string[1][6]+string[1][7]
-						element = file + ' ' + date + ' ' + time + ' ' + str(size) + ' '
-						#list_files.append() nao e append mas sim enviar com espaços
-						connUser.sendall(element)
+						date_time = time.strftime("%d.%m.%Y %H:%M:%S", time.gmtime(created))
+						element = file + ' ' + date_time + ' ' + str(size) + ' '
+						connUser.sendall(element) #file details
 						f = open(file,'rb')
-						l = f.read(1024)
-						while (l):
-							connUser.send(1024)
-							l = f.read(1024)
+						l = f.read(size)
+						connUser.send(l)
 						f.close()
-				#send files from directory to user
-				#for each file nFiles=nFiles+1
-				#each file details to send to user: file_name, date_time, size, data (file contents)
         else:
 			print "ERR"
 			sock.close()
