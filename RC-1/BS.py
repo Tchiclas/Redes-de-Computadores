@@ -8,7 +8,7 @@ import os
 import time
 
 #numero do grupo
-GN = 63
+GN = 71
 
 BSPORT = 59000 #usar na comunicacao BS - user
 CSPORT = 58000 + GN #usar na comunicacao BS - CS

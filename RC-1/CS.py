@@ -18,7 +18,7 @@ PORT = 58000 +GN
 users = {"12345":"aaaaaaaa"}        #utilizador para teste
 
 
-ddef parseUDP():
+def parseUDP():
 	sockBS = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 	server_address = ("", PORT)
 	sockBS.bind(server_address)
@@ -238,3 +238,4 @@ else:
 
 
 #ps aux e dps kill -9
+

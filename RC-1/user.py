@@ -19,6 +19,7 @@ global PORT
 global username
 global password
 global new
+GN = 63
 
 
 
@@ -64,6 +65,7 @@ def parse():
 			message = "AUT "+username+" "+password+"\n"
 			s.sendall(message)
 			data = str(s.recv(16))
+			s.close()
 			print data
 			if (data == "AUR NEW\n"):
 				new = True
@@ -209,7 +211,7 @@ def parse():
 if(len(sys.argv) == 3):
 	if(sys.argv[1] == "-n"):
 		HOST = socket.gethostbyname(str(sys.argv[2]))
-		PORT = 58063
+		PORT = 58000 + GN
 	elif(sys.argv[1] == "-p"):
 		PORT = int(sys.argv[2])
 		HOST = "localhost"
@@ -217,7 +219,7 @@ elif(len(sys.argv) == 5):
 	HOST = socket.gethostbyname(str(sys.argv[2]))
 	PORT = int(sys.argv[4])
 else:
-	PORT = 58063
+	PORT = 58000 + GN
 	HOST = "localhost"
 
 #print len(sys.argv)
