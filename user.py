@@ -141,7 +141,7 @@ def parse():
 			data = s.recv(44) #filename date time size
 			string = data.split()
 			cwd = os.getcwd() #path of current working directory
-			cwd = cwd + '/' + 'uva2' #change for + dir(asked for restore)
+			cwd = cwd + '/' + directory 
 			os.makedirs(cwd) #make directory if directory doesn't exist
 			os.chdir(cwd) #open directory
 			rest_size = 0 
