@@ -19,90 +19,108 @@ global PORT
 global username
 global password
 global new
+GN = 63
+
+
+
 
 
 
 def backup_request(name_dir):
-	#lista de todos os ficheiros dentro da diretoria ".", 
-	#mas nao devia ser de qualquer uma ? atraves do name_dir?
-	files = [f for f in os.listdir('./'+name_dir) if os.path.isfile(f)]
 
+	cwd = os.getcwd()
+	dir_path = cwd + '/' + name_dir
+	list_files = os-listdir(dir_path)
+	mess = 'BCK '+ name_dir + ' ' + str(len(list_files))
+	for file in list_files:
+			created = os.stat(file).st_ctime
+			size = os.stat(file).st_size
+			date_time = time.strftime("%d.%m.%Y %H:%M:%S", time.gmtime(created))
+			element =  ' ' + file + ' ' + date_time + ' ' + str(size)
+			mess = mess + element
+		mess = mess +'\n'
 
-	mess = 'BCK '+ name_dir+ ' ' + str(len(files))
-	dir_files = ''
-
-	for f in files:
-		t = os.path.getmtime(f)
-		date_specifications = datetime.datetime.fromtimestamp(t)
-		size = os.path.getsize(f)
-		dir_files = dir_files + ' ' + str(f) + ' ' + str(date_specifications) + ' ' + str(size)
-
-	return mess + dir_files
+	return mess
 
 #para escolher o que fazer
 def parse():
+	login_counter = 0
 	IPBS = 0
 	portBS = 0
 	list_str = [""]
 	while (list_str[0] != "exit"):
 
-		s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-		s.connect((HOST	, PORT))
-		
+
 		string = raw_input("choose an option: ")
 		list_str = string.split()
 		
 
-		if(list_str[0] == "login"):
-
-			username = str(list_str[1])
-			password = str(list_str[2])
-
-			#resposta do CS
-			message = "AUT "+username+" "+password+"\n"
-			s.sendall(message)
-			data = str(s.recv(16))
-			if (data == "AUR NEW\n"):
-				new = True
-				print 'User: ' + '\"' + username + '\"' + ' created'
-			elif(data == "AUR OK\n"):
-				new = False
-				print 'User: ' + '\"' + username + '\"' + ' logged in'
+		if(list_str[0] == "login"):   # A FUNCIONAR
+			if(login_counter > 0):
+				print 'You have to logout first.\n'
 			else:
-				new = False
-				print 'Erro'
-		
-		elif(list_str[0] == "deluser"):
+				#global login_counter
+				
 
-			s.sendall("AUT "+username+" "+password+"\n")
-			print  s.recv(16)
-			s.close()
+				s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+				s.connect((HOST	, PORT))
+			
+
+				username = str(list_str[1])
+				password = str(list_str[2])
+
+				#resposta do CS
+				message = "AUT "+username+" "+password+"\n"
+				s.sendall(message)
+				data = str(s.recv(16))
+				s.close()
+				#print data
+				if (data == "AUR NEW\n"):
+					login_counter = login_counter + 1
+					new = True
+					print 'User: ' + '\"' + username + '\"' + ' created\n'
+				elif(data == "AUR OK\n"):
+					login_counter = login_counter + 1
+					new = False
+					print 'User: ' + '\"' + username + '\"' + ' logged in\n'
+				else:
+					new = False
+					print 'Erro\n'
+				#s.close()
+		
+		elif(list_str[0] == "deluser"):    # A FUNCIONAR
 
 			s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 			s.connect((HOST	, PORT))
+		
+
+			s.sendall("AUT "+username+" "+password+"\n")
+			#verificacao do pedido de autenticacao ao CS
+			if (s.recv(16) != 'AUR OK\n'):
+				print 'ERR' 
+
 			s.sendall("DLU\n")
 			data = s.recv(1024)	
 
 			if(data == "DLR OK\n"):
 				print "User deleted!"
+				login_counter = 0
 			else:
 				print "ainda ha ficheiros nos BS"
 
+			s.close()
+
 		elif(list_str[0] == "backup"):
-			#first login
+
+			s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+			s.connect((HOST	, PORT))
+
+			#login
 			s.sendall("AUT "+str(username)+" "+str(password)+"\n")
 			data = s.recv(16) #AUR OK
-			s.close()
-
-			s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-			s.connect((HOST	, PORT))
-
 			
 			s.sendall(backup_request(list_str[1]))
-			s.close()
 
-			s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-			s.connect((HOST	, PORT))
 			data = s.recv(4098)
 
 			print data
@@ -111,95 +129,54 @@ def parse():
 			replyCS = data.split()
 			IPBS = int(replyCS[1])
 			portBS = int(replyCS[2])
+
+			s.close()
 		
 		elif(list_str[0] == "restore"):
-			directory = list_str[1]
 
-			#first login with CS
+			s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+			s.connect((HOST	, PORT))
+
+			#first login
 			s.sendall("AUT "+str(username)+" "+str(password)+"\n")
 			data = s.recv(16) #AUR OK		
 			
-			s.sendall("RST "+ directory +"\n")
-			data = s.recv(32) #RSR IPBS portBS
-			string = data.split()
-			IPBS = string[1]
-			portBS = string[2]
+			s.sendall("RST "+list_str[1]+"\n")
+
+			print "restore"
+
 			s.close()
-			
-			#User-BS TCP
+
+		elif(list_str[0] == "dirlist"):  # A PARTE DO USER JA ESTA A FUNCIONAR
+
 			s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-			s.connect((IPBS	, portBS))
+			s.connect((HOST	, PORT))
 
-			#Autenticacao BS
-			s.sendall("AUT "+str(username)+" "+str(password)+"\n")
-			data = s.recv(16) #AUR OK	
-
-			s.sendall("RSB "+ directory +"\n")
-
-
-			string = s.recv(16) #RBR number_of_files
-			data = s.recv(44) #filename date time size
-			string = data.split()
-			cwd = os.getcwd() #path of current working directory
-			cwd = cwd + '/' + directory 
-			os.makedirs(cwd) #make directory if directory doesn't exist
-			os.chdir(cwd) #open directory
-			rest_size = 0 
-			rest = ''
-			while (1):
-				filename = string[0]
-				size = int(string[3]) - rest_size
-				f = open(filename, 'a') #append so I can write data more than once
-				data = s.recv(size) #receive data from file
-				f.write(rest)
-				f.write(data)
-				data = s.recv(44) #next file details
-				string = data.split()
-				print 'string: ' + str(string)
-				if (len(string) == 0): #no more files to receive
-					break
-				if (len(string) > 4): #restore of data of the next file has started
-					index = data.find ( string[4] )
-					rest = data[index:]
-					print 'rest: ' + rest
-					rest_size = len(rest.encode('utf-8'))
-				else:
-					rest = ''
-					rest_size = 0
-			s.close()
-
-
-			#print "restore"
-
-		elif(list_str[0] == "dirlist"):
-
-			#primeiro fazer a autentificacao
-			if(new):
-				s.sendall("AUT "+username+" "+password+"\n")
-				print  s.recv(1024)
-				s.close()
-			
-				s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-				s.connect((HOST	, PORT))
+			s.sendall("AUT "+username+" "+password+"\n")
+			print  s.recv(1024)
 
 			s.send("LSD\n")
 			print s.recv(5120)
+			s.close()
 
-		elif(list_str[0] == "filelist"):
+		elif(list_str[0] == "filelist"):    #A PARTE DO USER JA ESTA A FUNCIONAR
 
+			s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+			s.connect((HOST	, PORT))
+		
 			#primeiro fazer a autentificacao
 			s.sendall("AUT "+username+" "+password+"\n")
 			print  s.recv(16)
-			s.close()
-			
-			s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-			s.connect((HOST	, PORT))
 
 			s.sendall("LSF "+list_str[1]+"\n")
 			data = s.recv(4096) 
 			print data #por agora esta assim pq nao sei qual e o formato que se quer apresentar
+			s.close()
 
 		elif(list_str[0] == "delete"):
+
+			s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+			s.connect((HOST	, PORT))
 
 			#first login
 			s.sendall("AUT "+str(username)+" "+str(password)+"\n")
@@ -207,13 +184,27 @@ def parse():
 			s.close()
 
 			print "delete"
-		elif(list_str[0] == "logout"):  #NAO E PRECISO FAZER MAIS NADA
+		elif(list_str[0] == "logout"):  # JA ESTA A FUNCIONAR
+
+			s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+			s.connect((HOST	, PORT))
+			
+			s.send("AUT "+username+" "+password+"\n")
+			print 'User: ' + '\"' + username + '\"' + ' logged out\n'		
+			s.sendall("OUT\n")
+
 			#faz com que seja preciso fazer login outra vez
+			#global login_counter
 			username = ""
 			password = ""
+			login_counter = 0
 
-			print "logout"
-		elif(list_str[0] == "exit"):
+		elif(list_str[0] == "exit"):    # JA ESTA A FUNCIONAR ( SO QUANDO O UTILIZADOR ESTA LOGGED IN ? )
+			s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+			s.connect((HOST	, PORT))
+			
+			s.send("AUT "+username+" "+password+"\n")
+		
 			print "exit"
 			s.sendall("OUT\n")
 			break;
@@ -225,7 +216,6 @@ def parse():
 			print 'BKR OK'
 
 		
-		s.close()
 
 
 #HOST = socket.gethostbyname(str(sys.argv[2]))
@@ -234,7 +224,7 @@ def parse():
 if(len(sys.argv) == 3):
 	if(sys.argv[1] == "-n"):
 		HOST = socket.gethostbyname(str(sys.argv[2]))
-		PORT = 58063
+		PORT = 58000 + GN
 	elif(sys.argv[1] == "-p"):
 		PORT = int(sys.argv[2])
 		HOST = "localhost"
@@ -242,7 +232,7 @@ elif(len(sys.argv) == 5):
 	HOST = socket.gethostbyname(str(sys.argv[2]))
 	PORT = int(sys.argv[4])
 else:
-	PORT = 58063
+	PORT = 58000 + GN
 	HOST = "localhost"
 
 #print len(sys.argv)
@@ -251,6 +241,7 @@ else:
 
 
 #print backup_request("RC")
+
 parse()
 
 #print "CSname: "+ sys.argv[1] + " CSport: "+str(int(sys.argv[2])+1)
