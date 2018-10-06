@@ -1,5 +1,7 @@
 '''
 everything related to the central server 
+user_dir = cwd + '/user_' + username
+os.makedirs(user_dir)
 
 '''
 import socket
@@ -15,7 +17,7 @@ PORT = 58000 +GN
 
 
 #dicionario com o username como key
-users = {"12345":"aaaaaaaa"}        #utilizador para teste
+#users = {"12345":"aaaaaaaa"}        utilizador para teste
 
 
 def parseUDP():
@@ -27,49 +29,51 @@ def parseUDP():
 		#receive from BS
 		dataBS, address = sockBS.recvfrom(4096)
 		commandBS = dataBS.split()
-		if (len(commandBS) < 3 ):
-			portname = ''  #como ' ' nao era reconhecido como nome de porta tive de improvisar 
-		else:
-			portname = commandBS[2]
-		
-		portnum = commandBS[1]
 		
 		if(commandBS[0] == "REG"):
-			exists = False  #BS is already registed
-			BS = open("BS_list.txt","r")
-			for line in BS:
-				split = line.split()
-				if(split[0] == portnum): # se tiver uma porta igual 
-					exists = True
-			BS.close()
-			if(exists):
-				BS = open("BS_list.txt","a")
-				BS.write(portnum+" "+ portname+"\n")
-				BS.close()
-				#sendto BS RGR OK\n
-				sockBS.sendto("RGR OK\n", (address))
-				#print '+BS: ' + portname + ' ' + portnum
+			if(not len(commandBS) == 3):
+				sockBS.sendto("RGR ERR\n", (address))
 			else:
-				sockBS.sendto("RGR NOK\n", (address))
-			print '+BS: ' + portname + ' ' + portnum
+				portname = commandBS[2]
+				portnum = commandBS[1]
+				exists = False  #BS is already registed
+				BS = open("BS_list.txt","r")
+				for line in BS:
+					split = line.split()
+					if(split[0] == portnum): # se tiver uma porta igual 
+						exists = True
+				BS.close()
+				if(not exists):
+					BS = open("BS_list.txt","a")
+					BS.write(portnum+" "+ portname+"\n")
+					BS.close()
+
+				#sockBS.sendto("RGR NOK\n", (address))
+
+				print '+BS: ' + portname + ' ' + portnum
+				sockBS.sendto("RGR OK\n", (address))
 			
 
 def user_ver(username,password):
 
-	file = open("users_list.txt","r")
-	for line in file:
-		split = line.split()
-		if(split[0] == str(username)):
-			if(split[1] == str(password)):
-				return "AUR OK\n"
-			else:
-				return "AUR NOK\n"
-	file.close()
-
-	file = open("users_list.txt","a")
-	file.write(username+" "+ password+"\n")
-	file.close()
-	return "AUR NEW\n"
+	cwd = os.getcwd()
+	list_dir = os.listdir(cwd)
+	user_file = 'user_' + username + '.txt'
+	if user_file in list_dir:
+		file = open(user_file, 'r')
+		user_pass = file.read()
+		if (user_pass == password):
+			print 'User: ' + username
+			return "AUR OK\n"
+		else:
+			return "AUR NOK\n"
+		file.close()
+	else:
+		file = open(user_file, 'w')
+		file.write(password)
+		file.close()
+		print 'New user: ' + username
+		return "AUR NEW\n"
 			
 
 
@@ -91,11 +95,15 @@ def parseTCP():
 	string = conn.recv(4096)
 	data = string.split()
 
+	#First login
 	if(data[0] == "AUT"):
-		conn.sendall(user_ver(data[1],data[2]))
+		reply = user_ver(data[1],data[2])
+		conn.sendall(reply)
+		if (reply == "AUR NOK\n"):
+			s.close()
+			parseTCP()
 	else:
 		conn.sendall("ERR")
-		
 	s.close()
 	while 1:
 		#socket USER - CS (TCP) ======================================
@@ -106,50 +114,79 @@ def parseTCP():
 		conn, addr = s.accept()
 
 		#receive from user
-		string = conn.recv(4096)
+		string = conn.recv(4096) #receive login
 		data = string.split()
-		print data
+		#print data
 
 		username = data[1]
 		password = data[2]
-		conn.sendall(user_ver(username,password))
+		conn.sendall(user_ver(username,password)) #AUR
 
-		string = conn.recv(4096)
+		string = conn.recv(4096) #receive command
 		data = string.split()
-		print data
+		#print data
 
 		if(data[0] == "DLU"):
-			ok = True
-			file = open("backup_list.txt","r")
-			for line in file:
-				split = line.split()
-				if(split[0] == str(username)):
-					ok = False
-			file.close()
-
-			if(not ok):
-				file = open("users_list.txt","r")
-				lines = file.readlines()
-				file.close()
-
-				file = open("users_list.txt","w")
-				for line in lines:
-					if(str(username) not in line):
-						file.write(line)
-				file.close()
-
-				conn.sendall("DLR OK\n")
-				s.close()
-				return	
+			cwd = os.getcwd()
+			user_dir = cwd + '/user_' + username
+			user_file = cwd + '/user_' + username + '.txt'
+			if (user_dir in os.listdir(cwd)): #user has dir
+				if (len(os.listdir(user_dir)) == 0):
+					os.remove(user_dir)
+					os.remove(user_file)
+					conn.sendall("DLR OK\n")
+				else:
+					conn.sendall("DLR NOK\n")
 			else:
-				conn.sendall("DLR NOK\n")  #nao existia esse user sequer i guess
-
-
-			print "DLU"
-		elif(data[0] == "BCK"):
-			#send request LSU to BS
+				os.remove(user_file)
+				conn.sendall("DLR OK\n")
 			s.close()
+			print "\tDeleted"~
+			parseTCP()
+
+		elif(data[0] == "BCK"):
+			if (len(data) < 3):
+				conn.sendall("BKR ERR\n")
+			else:
+				n_files = int(data[2])
+				if(not len(data) == 3+3*n_files):
+					conn.sendall("BKR ERR\n")
+				else:
+					directory = data[1]
+					cwd = os.getcwd()
+					user_dir = 'user_' + username' #user directory
+					user_dir_path = cwd + '/' + user_dir #path of user directory
+					directory_path = user_dir_path+'/'+directory #path of directory
+					list_dir = os.listdir(cwd) #list of directories in cwd
+					list_files = data[3:] #list of files to backup
+					list_dir_files = os.listdir(directory_path) #list of files in directory
+
+					#user has backup in BS
+					if (user_dir in list_dir):
+						if(directory in os.listdir(user_dir_path)):
+							#if('IP_port.txt' in os.listdir(directory_path))
+							file = open('IP_port.txt', 'r')
+							file_data = file.read() #portnum portname
+							line = file_data.split()
+							IPBS = line[1]
+							portBS = line[0]
+							file.close()
+
+							""" index = 0
+							while index < len(list_files):
+								if (list_files[index] in list_dir_files):
+									if (index+3 < len(list_files)):
+										list_files = list_files[0:index] + list_files[index+3:]
+									else:
+										list_files = list_files[0:index]
+								index = index + 3 """
+							
+								
+							
+							
+
 			#loop por todos os BS registados para saber qual pode fazer o backup
+			BS = open("BS_list.txt","r")
 			for IPBS in BS:
 				sockBS = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 				sockBS.bind(("", PORT))
@@ -169,16 +206,14 @@ def parseTCP():
 					print "ERR"
 				sockBS.close()
 
-			#volta a ligar TCP com o user
-			s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-			s.bind(("", PORT))
-			s.listen(1)
-			conn, addr = s.accept()
 
 			print 'BCK ' + username + ' ' + str(data[1]) + ' ' + str("IPBS")+' '+str(portBS)
 
 			m = 'BKR '+str(IPBS)+' '+str(portBS) + ' '+ str(data[2])
 			conn.sendall(m)
+
+
+
 		elif(data[0] =="RST"):
 			print "RST"
 
@@ -224,6 +259,8 @@ def parseTCP():
 			print "DEL"
 		elif(data[0] == "OUT"):
 			s.close()
+			print '\tOut'
+			parseTCP()
 			return
 
 		s.close()

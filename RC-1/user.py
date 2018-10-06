@@ -23,25 +23,28 @@ GN = 63
 
 
 
+
+
+
 def backup_request(name_dir):
-	#lista de todos os ficheiros dentro da diretoria ".", 
-	#mas nao devia ser de qualquer uma ? atraves do name_dir?
-	files = [f for f in os.listdir('./'+name_dir) if os.path.isfile(f)]
 
+	cwd = os.getcwd()
+	dir_path = cwd + '/' + name_dir
+	list_files = os-listdir(dir_path)
+	mess = 'BCK '+ name_dir + ' ' + str(len(list_files))
+	for file in list_files:
+			created = os.stat(file).st_ctime
+			size = os.stat(file).st_size
+			date_time = time.strftime("%d.%m.%Y %H:%M:%S", time.gmtime(created))
+			element =  ' ' + file + ' ' + date_time + ' ' + str(size)
+			mess = mess + element
+		mess = mess +'\n'
 
-	mess = 'BCK '+ name_dir+ ' ' + str(len(files))
-	dir_files = ''
-
-	for f in files:
-		t = os.path.getmtime(f)
-		date_specifications = datetime.datetime.fromtimestamp(t)
-		size = os.path.getsize(f)
-		dir_files = dir_files + ' ' + str(f) + ' ' + str(date_specifications) + ' ' + str(size)
-
-	return mess + dir_files
+	return mess
 
 #para escolher o que fazer
 def parse():
+	login_counter = 0
 	IPBS = 0
 	portBS = 0
 	list_str = [""]
@@ -53,30 +56,37 @@ def parse():
 		
 
 		if(list_str[0] == "login"):   # A FUNCIONAR
-
-			s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-			s.connect((HOST	, PORT))
-		
-
-			username = str(list_str[1])
-			password = str(list_str[2])
-
-			#resposta do CS
-			message = "AUT "+username+" "+password+"\n"
-			s.sendall(message)
-			data = str(s.recv(16))
-			s.close()
-			print data
-			if (data == "AUR NEW\n"):
-				new = True
-				print 'User: ' + '\"' + username + '\"' + ' created'
-			elif(data == "AUR OK\n"):
-				new = False
-				print 'User: ' + '\"' + username + '\"' + ' logged in'
+			if(login_counter > 0):
+				print 'You have to logout first.\n'
 			else:
-				new = False
-				print 'Erro'
-			s.close()
+				#global login_counter
+				
+
+				s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+				s.connect((HOST	, PORT))
+			
+
+				username = str(list_str[1])
+				password = str(list_str[2])
+
+				#resposta do CS
+				message = "AUT "+username+" "+password+"\n"
+				s.sendall(message)
+				data = str(s.recv(16))
+				s.close()
+				#print data
+				if (data == "AUR NEW\n"):
+					login_counter = login_counter + 1
+					new = True
+					print 'User: ' + '\"' + username + '\"' + ' created\n'
+				elif(data == "AUR OK\n"):
+					login_counter = login_counter + 1
+					new = False
+					print 'User: ' + '\"' + username + '\"' + ' logged in\n'
+				else:
+					new = False
+					print 'Erro\n'
+				#s.close()
 		
 		elif(list_str[0] == "deluser"):    # A FUNCIONAR
 
@@ -94,6 +104,7 @@ def parse():
 
 			if(data == "DLR OK\n"):
 				print "User deleted!"
+				login_counter = 0
 			else:
 				print "ainda ha ficheiros nos BS"
 
@@ -104,7 +115,7 @@ def parse():
 			s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 			s.connect((HOST	, PORT))
 
-			#first login
+			#login
 			s.sendall("AUT "+str(username)+" "+str(password)+"\n")
 			data = s.recv(16) #AUR OK
 			
@@ -179,12 +190,14 @@ def parse():
 			s.connect((HOST	, PORT))
 			
 			s.send("AUT "+username+" "+password+"\n")
-			print "logout"		
+			print 'User: ' + '\"' + username + '\"' + ' logged out\n'		
 			s.sendall("OUT\n")
 
 			#faz com que seja preciso fazer login outra vez
+			#global login_counter
 			username = ""
 			password = ""
+			login_counter = 0
 
 		elif(list_str[0] == "exit"):    # JA ESTA A FUNCIONAR ( SO QUANDO O UTILIZADOR ESTA LOGGED IN ? )
 			s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -228,6 +241,7 @@ else:
 
 
 #print backup_request("RC")
+
 parse()
 
 #print "CSname: "+ sys.argv[1] + " CSport: "+str(int(sys.argv[2])+1)

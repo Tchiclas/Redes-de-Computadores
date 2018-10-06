@@ -20,7 +20,10 @@ users = {"12345":"aaaaaaaa"}
 #data structure with directories with files
 
 def register_user(username,password):
-	users[str(username)] = str(password)
+	user_file = 'user_' + username + '.txt'
+	file = open(user_file, 'w')
+	file.write(password)
+	file.close()
 
 #handles flag values
 def create_backup_server():
@@ -43,9 +46,22 @@ def handlerRGR(status):
 		print 'ERR'   #QUAL E A MENSAGEM DE REGISTO NAO POSSIVEL? - CONFIRMAR
 
 def handlerLSF(user, dir, server_address): #NOT DONE!!!!!!
-	#corrigir isto, para parecido com rsb
-	filelist = []
-	sock.sendto(str(filelist), server_address)
+	cwd = os.getcwd() #path of current working directory
+    cwd = cwd + '/' + dir
+	if(os.path.exists(cwd)):
+		os.chdir(cwd) #open directory
+		cwd = os.getcwd()
+		list_files = os.listdir(cwd)
+		nFiles = len(list_files)
+		element = 'LFD ' + str(nFiles)  #reply
+		connUser.sendall(element)
+		for file in list_files:
+			created= os.stat(file).st_ctime
+			size = os.stat(file).st_size
+			date_time = time.strftime("%d.%m.%Y %H:%M:%S", time.gmtime(created))
+			element =  ' ' + file + ' ' + date_time + ' ' + str(size)
+			connUser.sendall(element) #file details
+		connUSer.sendall('\n')
 
 
 def parse():
@@ -85,11 +101,14 @@ def parse():
 			dir = command[2]
 			handlerLSF(user, dir, server_address)
 		elif(command[0] == "LSU"):
-			user = str(command[1])
-			passw = str(command[2])
-			register_user(user,passw)
-			print 'New user: ' + user
-			sock.sendto('LUR OK', server_address)
+			if (len(command= == 3)):
+				user = str(command[1])
+				passw = str(command[2])
+				register_user(user,passw)
+				print 'New user: ' + user
+				sock.sendto('LUR OK', server_address)
+			else:
+				sock.sendto('LUR ERR', server_address)
 		elif(command[0] == "DLB"):
 			user = command[1]
 			dir = command[2]
