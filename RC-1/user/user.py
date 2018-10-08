@@ -1,4 +1,5 @@
 
+
 '''
 everything related to the user 
 
@@ -142,16 +143,16 @@ def parse():
 			sockUPL = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 			sockUPL.connect((IPBS	, portBS))
 			sockUPL.sendall("AUT "+str(username)+" "+str(password)+"\n")
-			sockUPL.sendall(message)
+			#sockUPL.sendall(message)
 			message = 'UPL ' + directory + ' ' + n_files
 			sockUPL.sendall(message)
 			while index < length:
 				path = cwd + '/' + directory + '/' + list_files[index]
 				size = list_files[index+3]
-				send = ' ' + list_files[index:index+4] + ' '
+				send = ' ' + ' '.join(list_files[index:index+4]) + ' '
 				sockUPL.send(send)
 				file = open(path,'rb')
-				l = file.read(size)
+				l = file.read(int(size))
 				sockUPL.send(l)
 				file.close()
 				index = index + 4
@@ -224,12 +225,12 @@ def parse():
 			print "delete"
 		elif(list_str[0] == "logout"):  # JA ESTA A FUNCIONAR
 
-			s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-			s.connect((HOST	, PORT))
+			#s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+			#s.connect((HOST	, PORT))
 			
-			s.send("AUT "+username+" "+password+"\n")
+			#s.send("AUT "+username+" "+password+"\n")
 			print 'User: ' + '\"' + username + '\"' + ' logged out\n'		
-			s.sendall("OUT\n")
+			#s.sendall("OUT\n")
 
 			#faz com que seja preciso fazer login outra vez
 			#global login_counter
@@ -283,4 +284,5 @@ else:
 parse()
 
 #print "CSname: "+ sys.argv[1] + " CSport: "+str(int(sys.argv[2])+1)
+
 
