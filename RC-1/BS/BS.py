@@ -73,17 +73,28 @@ def parseTCP():
 	current_pass = ''
 	# Create a TCP socket (user)
 	sockUser = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-	#sockUser.bind((BSNAME, BSPORT))
+	sockUser.bind((BSNAME, BSPORT))
 	sockUser.listen(1)
 	connUser, addrUser = sockUser.accept()
+	print 'accept ' + str(connUser) + ' ' + str(addrUser)
+	missingCommand = False
+	dataUser = ''
 
 	while 1:
 		#messages from users
-		dataUser,addrUser = sockUser.recvfrom(27)
-		print 'user: ' + dataUser
+		if (missingCommand):
+			dataUser = commandSplit
+			commandSplit = ''
+			missingCommand = False
+		else:
+			dataUser = ''
+		dataUser = dataUser + connUser.recv(20)
 		requestUser = dataUser.split()
-
+		print requestUser
 		if (requestUser[0] == 'AUT'):
+			if( len(requestUser) != 3):
+				commandSplit = ' '.join(requestUser[3:])
+				missingCommand = True
 			us = str(requestUser[1])
 			pa = str(requestUser[2])
 			user_file = 'user_' + us + '.txt'
@@ -93,7 +104,7 @@ def parseTCP():
 				connUser.sendall("AUR OK")
 				current_user = us
 				current_pass = pa
-				print 'User: '+str(username)
+				print 'User: '+str(current_user)
 			else:
 				connUser.sendall("AUR NOK")
 
@@ -106,8 +117,11 @@ def parseTCP():
 			dir_path = user_dir_path + '/' + dir_name
 			if (not dir_name in os.listdir(user_dir_path)):
 				os.makedirs(dir_path)
-			dataUPL = s.recv(44) #filename date time size
-			string = data.split()
+			restUPL = ''
+			if(len(requestUser != 3)):
+				restUPL = requestUser[3:]
+			dataUPL = restUPL + connUser.recv(44) #filename date time size
+			string = dataUPL.split()
 			os.chdir(dir_path) #open directory
 			rest_size = 0 
 			rest = ''
@@ -115,18 +129,18 @@ def parseTCP():
 				filename = string[0]
 				size = int(string[3]) - rest_size
 				f = open(filename, 'a') #append so I can write data more than once
-				dataUPL = s.recv(size) #receive data from file
+				dataUPL = connUser.recv(size) #receive data from file
 				print directory + ': ' + filename + ' ' + string[3] + 'Bytes received'
 				f.write(rest)
-				f.write(data)
+				f.write(dataUPL)
 				dataUPL = s.recv(44) #next file details
-				string = data.split()
+				string = dataUPL.split()
 				print 'string: ' + str(string)
 				if (len(string) == 0): #no more files to receive
 					break
 				if (len(string) > 4): #restore of data of the next file has started
-					index = data.find ( string[4] )
-					rest = data[index:]
+					index = dataUPL.find ( string[4] )
+					rest = dataUPL[index:]
 					print 'rest: ' + rest
 					rest_size = len(rest.encode('utf-8'))
 				else:
@@ -192,16 +206,14 @@ def parseUDP():
 	sock.sendto(message, server_address)
 	print 'enviadacom sucesso'
 	sock.close()
-
+	#messages from CS
+	sockBS = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+	server_address = (BSNAME, BSPORT)
+	sockBS.bind(server_address)
 	
 
 	while 1:
-		#messages from CS
-		print 'dentro while'
-		sockBS = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-		server_address = (BSNAME, BSPORT)
-		sockBS.bind(server_address)
-		print 'bindei a espera de receber'
+		
 		data, addr = sockBS.recvfrom(1024)
 		print 'received'
 		print data
@@ -217,7 +229,7 @@ def parseUDP():
 		elif(command[0] == "LSF"):
 			user = command[1]
 			dir = command[2]
-			handlerLSF(user, dir, server_address)
+			handlerLSF(user, dir, addr)
 		elif(command[0] == "LSU"):
 			if (len(command)== 3):
 				user = str(command[1])
@@ -225,9 +237,11 @@ def parseUDP():
 				print 'aqui '
 				register_user(user,passw)
 				print 'New user: ' + user
-				sockBS.sendto('LUR OK\n', server_address)
+				sockBS.sendto('LUR OK\n', addr)
+				print 'sended to: ' + str(addr)
+				#sockBS.close()
 			else:
-				sockBS.sendto('LUR ERR', server_address)
+				sockBS.sendto('LUR ERR', addr)
 		elif(command[0] == "DLB"):
 			user = command[1]
 			dir = command[2]
