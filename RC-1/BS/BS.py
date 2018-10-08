@@ -1,258 +1,337 @@
-"""
-everything related to the backup server 
+'''
+everything related to the central server 
+user_dir = cwd + '/user_' + username
+os.makedirs(user_dir)
 
-"""
+'''
 import socket
 import sys
 import os
-import time
 
-#numero do grupo
-GN = 77
+#o valor generico sera 58000 mais o numero do grupo
+GN = 77  #GN sera o numero do grupo
 
-BSPORT = 59000 #usar na comunicacao BS - user
-CSPORT = 58000 + GN #usar na comunicacao BS - CS
-CSNAME = ""
-BSNAME = socket.gethostname()
+HOST = socket.gethostname()
+PORT = 58000 +GN
+lastBS = -2
 
-#dictionary with username as keyword
-users = {"12345":"aaaaaaaa"}
 
-#data structure with directories with files
 
-def register_user(username,password):
-	user_file = 'user_' + username + '.txt'
-	file = open(user_file, 'w')
-	file.write(password)
-	file.close()
-	cwd = os.getcwd()
-	user_dir = 'user_' + username
-	user_dir_path = cwd + '/' + user_dir
-	os.makedirs(user_dir_path)
+#dicionario com o username como key
+#users = {"12345":"aaaaaaaa"}        utilizador para teste
 
-#handles flag values
-def create_backup_server():
-	l=len(sys.argv)
-	global BSPORT
-	global CSNAME
-	global CSPORT
-	i = 1
-	while i < l:  
-		if sys.argv[i] == '-b':
-			BSPORT = int(sys.argv[i+1])
-		if sys.argv[i] == '-n':
-			CSNAME = sys.argv[i+1]
-		if sys.argv[i] == '-p':
-			CSPORT = int(sys.argv[i+1])
-		i = i + 2
-#atencao tem de se acrescentar o \n no final do ok!!!!!
-def handlerRGR(status):
-	if( status != 'OK'):
-		print 'ERR'   #QUAL E A MENSAGEM DE REGISTO NAO POSSIVEL? - CONFIRMAR
-
-def handlerLSF(user, directory, server_address): #NOT DONE!!!!!!
-	cwd = os.getcwd() #path of current working directory
-	cwd = cwd + '/' + directory
-	if(os.path.exists(cwd)):
-		os.chdir(cwd) #open directory
-		cwd = os.getcwd()
-		list_files = os.listdir(cwd)
-		nFiles = len(list_files)
-		element = 'LFD ' + str(nFiles)  #reply
-		connUser.sendall(element)
-		for file in list_files:
-			created= os.stat(file).st_mtime
-			size = os.stat(file).st_size
-			date_time = time.strftime("%d.%m.%Y %H:%M:%S", time.gmtime(created))
-			element =  ' ' + file + ' ' + date_time + ' ' + str(size)
-			connUser.sendall(element) #file details
-		connUSer.sendall('\n')
-
-def parseTCP():
-	current_user = ''
-	current_pass = ''
-	# Create a TCP socket (user)
-	sockUser = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-	sockUser.bind((BSNAME, BSPORT))
-	sockUser.listen(1)
-	connUser, addrUser = sockUser.accept()
-	print 'accept ' + str(connUser) + ' ' + str(addrUser)
-	missingCommand = False
-	dataUser = ''
-
-	while 1:
-		#messages from users
-		if (missingCommand):
-			dataUser = commandSplit
-			commandSplit = ''
-			missingCommand = False
-		else:
-			dataUser = ''
-		dataUser = dataUser + connUser.recv(20)
-		requestUser = dataUser.split()
-		print requestUser
-		if (requestUser[0] == 'AUT'):
-			if( len(requestUser) != 3):
-				commandSplit = ' '.join(requestUser[3:])
-				missingCommand = True
-			us = str(requestUser[1])
-			pa = str(requestUser[2])
-			user_file = 'user_' + us + '.txt'
-			file = open(user_file, 'r')
-			password = file.read()
-			if(pa == password):
-				connUser.sendall("AUR OK")
-				current_user = us
-				current_pass = pa
-				print 'User: '+str(current_user)
-			else:
-				connUser.sendall("AUR NOK")
-
-		elif (requestUser[0] == 'UPL'):
-			dir_name = requestUser[1]
-			num_files = requestUser[2]
-			cwd = os.getcwd()
-			user_dir = 'user_' + current_user
-			user_dir_path = cwd + '/' + user_dir
-			dir_path = user_dir_path + '/' + dir_name
-			if (not dir_name in os.listdir(user_dir_path)):
-				os.makedirs(dir_path)
-			restUPL = ''
-			if(len(requestUser != 3)):
-				restUPL = requestUser[3:]
-			dataUPL = restUPL + connUser.recv(44) #filename date time size
-			string = dataUPL.split()
-			os.chdir(dir_path) #open directory
-			rest_size = 0 
-			rest = ''
-			while (1):
-				filename = string[0]
-				size = int(string[3]) - rest_size
-				f = open(filename, 'a') #append so I can write data more than once
-				dataUPL = connUser.recv(size) #receive data from file
-				print directory + ': ' + filename + ' ' + string[3] + 'Bytes received'
-				f.write(rest)
-				f.write(dataUPL)
-				dataUPL = s.recv(44) #next file details
-				string = dataUPL.split()
-				print 'string: ' + str(string)
-				if (len(string) == 0): #no more files to receive
-					break
-				if (len(string) > 4): #restore of data of the next file has started
-					index = dataUPL.find ( string[4] )
-					rest = dataUPL[index:]
-					print 'rest: ' + rest
-					rest_size = len(rest.encode('utf-8'))
-				else:
-					rest = ''
-					rest_size = 0
-			connUser.sendall('UPR OK')
-			os.chdir(cwd) #close directory
-			#UPL NOK?
-			
-			""" l = len(requestUser)
-			i = 3
-			j = 3
-			bk = ''
-			backup = ''
-			while j < l:
-				#str stores message to print in BS (file name and num bytes received)
-				if (j % 3 == 0):
-					bk = bk + str(requestUser[i]) + requestUser[i+3] + 'Bytes received\n'
-					i = i + 4
-				#stores file to backup in file
-				backup = backup + requestUser[j]
-				j = j + 1
-			print 'RC: ' + bk
-			connUser.sendall('UPR OK') """
-		elif (requestUser[0] == 'RSB'):
-			if (not len(requestUser) == 2):
-				connUser.sendall('RBR ERR')
-			else:
-				directory = requestUser[1]
-				cwd = os.getcwd() #path of current working directory
-				cwd = cwd + '/' + directory
-				if(not os.path.exists(cwd)):
-					connUser.sendall('RBR EOF')
-				else:
-					os.chdir(cwd) #open directory
-					cwd = os.getcwd()
-					list_files = os.listdir(cwd)
-					nFiles = len(list_files)
-					element = 'RBR ' + str(nFiles) + ' ' #reply
-					connUser.sendall(element)
-					for file in list_files:
-						created= os.stat(file).st_mtime
-						size = os.stat(file).st_size
-						date_time = time.strftime("%d.%m.%Y %H:%M:%S", time.gmtime(created))
-						element = file + ' ' + date_time + ' ' + str(size) + ' '
-						connUser.sendall(element) #file details
-						f = open(file,'rb')
-						l = f.read(size)
-						connUser.send(l)
-						f.close()
-        else:
-			print "ERR"
-			sock.close()
-			sockUser.close()
 
 def parseUDP():
-	#create_backup_server()
-	# Create a UDP socket (CS)
-	sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-	server_address = (BSNAME, CSPORT)
-	message = 'REG ' + str(BSPORT) + ' ' + BSNAME
-	print 'vou enviar msg'
-	sock.sendto(message, server_address)
-	print 'enviadacom sucesso'
-	sock.close()
-	#messages from CS
 	sockBS = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-	server_address = (BSNAME, BSPORT)
+	server_address = ("", PORT)
 	sockBS.bind(server_address)
-	
-
-	while 1:
+	print ' socket criado'
+	while(1):
+		#receive from BS
+		dataBS, address = sockBS.recvfrom(4096)
+		print 'recebi ' + dataBS
+		commandBS = dataBS.split()
 		
-		data, addr = sockBS.recvfrom(1024)
-		print 'received'
-		print data
-		command = data.split()
-
-		
-
-		if(command[0] == "RGR"):
-			handlerRGR(command[1])
-		elif(command[0] == "UAR"):
-			if(not command[1] == 'OK'):
-				print 'UAR ERR'
-		elif(command[0] == "LSF"):
-			user = command[1]
-			dir = command[2]
-			handlerLSF(user, dir, addr)
-		elif(command[0] == "LSU"):
-			if (len(command)== 3):
-				user = str(command[1])
-				passw = str(command[2])
-				print 'aqui '
-				register_user(user,passw)
-				print 'New user: ' + user
-				sockBS.sendto('LUR OK\n', addr)
-				print 'sended to: ' + str(addr)
-				#sockBS.close()
+		if(commandBS[0] == "REG"):
+			if(not len(commandBS) == 3):
+				sockBS.sendto("RGR ERR\n", (address))
 			else:
-				sockBS.sendto('LUR ERR', addr)
-		elif(command[0] == "DLB"):
-			user = command[1]
-			dir = command[2]
-			handlerDLB(user,dir)
-		#Devia existir algum else aqui?
+				portname = commandBS[2]
+				portnum = commandBS[1]
+				print portname + ' ' + portnum
+				exists = False  #BS is already registed
+				if("BS_list.txt" in os.listdir(os.getcwd())):
+					BS = open("BS_list.txt","r")
+					line = BS.read()
+					split = line.split()
+					index = 0
+					length = len(split)
+					while index < length:
+						if(split[index] == portnum): # se tiver uma porta igual 
+							exists = True
+						index = index + 2
+					BS.close()
+					if (not exists):
+						BS = open("BS_list.txt","a")
+						BS.write(" "+portnum+" "+ portname)
+						BS.close()
+				else:
+					BS = open("BS_list.txt","w")
+					BS.write(portnum+" "+ portname)
+					BS.close()
 
-		
-create_backup_server()
+				#sockBS.sendto("RGR NOK\n", (address))
+
+				print '+BS: ' + portname + ' ' + portnum
+				sockBS.sendto("RGR OK\n", (address))
+
+			
+
+def user_ver(username,password):
+
+	cwd = os.getcwd()
+	list_dir = os.listdir(cwd)
+	user_file = 'user_' + username + '.txt'
+	if user_file in list_dir:
+		file = open(user_file, 'r')
+		user_pass = file.read()
+		if (user_pass == password):
+			print 'User: ' + username
+			return "AUR OK\n"
+		else:
+			return "AUR NOK\n"
+		file.close()
+	else:
+		file = open(user_file, 'w')
+		file.write(password)
+		file.close()
+		print 'New user: ' + username
+		return "AUR NEW\n"
+			
+
+
+	
+#------chamar no inicio
+def parseTCP():
+	global lastBS
+	#IPBS = 0
+	#portBS = 0
+	#definir o PORT
+
+	logged = False
+	current_user = ""
+
+
+	s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+	s.bind(("", PORT))
+	s.listen(1)
+	conn, addr = s.accept()
+	#receive from user
+
+	while(1):
+
+		string = conn.recv(4096)
+		data = string.split()
+
+
+
+		print data
+		print" \nlogged: "+str(logged)+ " current_user: "+ current_user+"\n"
+
+		if (data[0] == "AUT" and current_user != data[1]):
+			logged = False
+
+		if(not logged):
+			#First login
+			if(data[0] == "AUT"):
+				reply = user_ver(data[1],data[2])
+				conn.sendall(reply)
+
+				current_user = data[1]
+				logged = True
+				conn, addr = s.accept()
+				if (reply == "AUR NOK\n"):
+					s.close()
+					return
+			else:
+				conn.sendall("ERR")
+				s.close()
+				return
+
+		elif(logged):
+			if(data[0] == "AUT"):
+				username = data[1]
+				password = data[2]
+				conn.sendall(user_ver(username,password))	
+
+			string = conn.recv(4096)
+			data = string.split()
+			print data		
+
+			if(data != []):  # ESTE IF ESTA AQUI PARA O CASO DE O USER FIZER logout/exit e
+							 # voltar a fazer login com o mesmo username			
+				if(data[0] == "DLU"):
+					cwd = os.getcwd()
+					user_dir = cwd + '/user_' + username
+					user_file = cwd + '/user_' + username + '.txt'
+					if (user_dir in os.listdir(cwd)): #user has dir
+						if (len(os.listdir(user_dir)) == 0):
+							os.remove(user_dir)
+							os.remove(user_file)
+							conn.sendall("DLR OK\n")
+						else:
+							conn.sendall("DLR NOK\n")
+					else:
+						os.remove(user_file)
+						conn.sendall("DLR OK\n")
+					s.close()
+					print "\tDeleted"
+					parseTCP()
+
+				elif(data[0] == "BCK"):
+					print data
+					if (len(data) < 3):
+						conn.sendall("BKR ERR\n")
+					else:
+						n_files = int(data[2])
+						if(not len(data) == 3+4*n_files):
+							conn.sendall("BKR ERR\n")
+						else:
+							directory = data[1]
+							n_files = int(data[2])
+							cwd = os.getcwd()
+							user_dir = 'user_' + username #user directory
+							user_dir_path = cwd + '/' + user_dir #path of user directory
+							directory_path = user_dir_path+'/'+directory #path of directory
+							list_dir = os.listdir(cwd) #list of directories in cwd
+							list_files = data[3:] #list of files to backup
+							#list_dir_files = os.listdir(directory_path) #list of files in directory
+							#user has backup in BS
+							if (user_dir in list_dir):
+								if(directory in os.listdir(user_dir_path)):
+									#if('IP_port.txt' in os.listdir(directory_path))
+									file = open('IP_port.txt', 'r')
+									file_data = file.read() #portnum portname
+									line = file_data.split()
+									IPBS = line[1]
+									portBS = line[0]
+									file.close()
+									print 'BCK ' + username + ' ' + directory + ' ' + IPBS +' '+ portBS
+									#LSF request to BS
+									sockBCK = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+									server_address = (IPBS, int(portBS))
+									sockBCK.sendto("LSF\n", server_address) #nao sei se preciso de criar um socket ou nao
+									dataLSF, address = sockBCK.recvfrom(4096)
+									reply = dataLSF #LSF reply
+									while dataLSF:
+										dataLSF, address = sockBCK.recvfrom(4096)
+										reply = reply + dataLSF
+									sockBCK.close()
+									reply = reply.split()
+									length = len(list_files)
+									i = 0
+									answer = []
+									new_n_files = 0
+									while i < length:
+										f = list_files[i] #filename
+										if (f in reply):
+											i_r = reply.index(f)
+											d_r = reply[i_r+1]
+											t_r = reply[i_r+2]
+											s_r = reply[i_r+3]
+											d = list_files[i+1]
+											t = list_files[i+1]
+											r = list_files[i+1]
+											if(s!=s_r or d!=d_r or t!=t_r):
+												answer = answer + list_files[i:i+4]
+												new_n_files = new_n_files + 1
+										else:
+											answer = answer + list_files[i:i+4]
+											new_n_files = new_n_files + 1
+										i = i + 4
+									answer = ' '.join(answer)
+									n_files = new_n_files
+							else:
+								if(not 'BS_list.txt' in list_dir):
+									conn.sendall("BKR EOF\n")
+								else:
+									#user and directory dir
+									os.makedirs(user_dir_path)
+									os.makedirs(directory_path)
+
+									BS = open("BS_list.txt","r")
+									line = BS.read()
+									line = line.split()
+									index = lastBS + 2
+									length = len(line)
+									if(not index < length):
+										index = 0
+									portBS = line[index]
+									IPBS = line[index+1]
+									fileIP = open(directory_path+'/IP_port.txt', 'w')
+									fileIP.write(portBS + ' ' + IPBS)
+									fileIP.close()
+									lastBS = index
+									print 'BCK ' + username + ' ' + directory + ' ' + IPBS +' '+ portBS
+									#LSU request to BS
+									print 'vou enviar LSU'
+									sockBCK = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+									server_address = (IPBS, int(portBS))
+									print 'server_address: ' +  str(server_address)
+									sockBCK.sendto("LSU " + username + ' ' + password , server_address)
+									print 'enviei LSU'
+									dataLSU, address = sockBCK.recvfrom(1024)
+									sockBCK.close()
+									print 'dataLSU: ' + dataLSU
+									if(dataLSU == 'LUR ERR'):
+										conn.sendall("BKR ERR\n")
+									elif(dataLSU == 'LUR NOK'):
+										conn.sendall("BKR EOF\n")
+									else:
+										answer = ' '.join(list_files)
+							answer = 'BKR ' + IPBS + ' ' + portBS + ' ' + str(n_files) + ' ' + answer + '\n'
+							conn.sendall(answer)
+									
+				elif(data[0] =="RST"):
+					print "RST"
+
+				elif(data[0] == "LSD"):
+
+					counter = 0
+					rec = ""
+					file = open("backup_list.txt","r")
+					for line in file:
+						split = line.split()
+						print split
+						if(str(split[0]) == str(username)):
+							counter = counter +1
+							rec = rec +" "+ str(split[1])
+					file.close()
+
+					rec = "LDR "+ str(counter) +rec + "\n"
+					conn.sendall(rec)
+					print rec
+
+				elif(data[0] == "LSF"):
+					#vai ao ficheiro backup_list ver qual e o BS que tem a diretoria que se quer
+					BSip = ""
+					BSport = ""
+
+					file = open("backup_list.txt","r")
+					for line in file:
+						split = line.split()
+						print split
+						if(str(split[1]) == data[1]):
+
+							BSip = split[2]
+							BSport = split[3]
+					file.close()
+					rec = "LFD "+" "+BSip+" "+BSport
+					#recebe LFD BSip BSport N (filename date_time size)*
+
+					#reencaminha LFD para o user
+					conn.sendall(rec)
+
+					print "LSF"
+				elif(data[0] == "DEL"):
+					print "DEL"
+			conn, addr = s.accept()
+		print" \nlogged: "+str(logged)+ " current_user: "+ current_user+" no fim do comando\n"
+
+
+
+global PORT
+if(len(sys.argv) != 1 and sys.argv[1] == "-p"):
+	PORT = int(sys.argv[2])
+
+
 pid = os.fork()
 if(pid == 0):
 	while(1):
 		parseTCP() # o filho vai tratar de responder a todos os pedidos TCP
 else:
 	parseUDP()	# o pai vai tratar de responder a todos os pedidos UDP
+
+
+#ps aux e dps kill -9
+
