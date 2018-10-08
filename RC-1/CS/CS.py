@@ -252,13 +252,13 @@ def parseTCP():
 							print 'enviei LSU'
 							dataLSU, address = sockBCK.recvfrom(1024)
 							sockBCK.close()
-							print dataLSU
+							print 'dataLSU: ' + dataLSU
 							if(dataLSU == 'LUR ERR'):
 								conn.sendall("BKR ERR\n")
 							elif(dataLSU == 'LUR NOK'):
 								conn.sendall("BKR EOF\n")
 							else:
-								answer = list_files
+								answer = ' '.join(list_files)
 					answer = 'BKR ' + IPBS + ' ' + portBS + ' ' + str(n_files) + ' ' + answer + '\n'
 					conn.sendall(answer)
 							
@@ -305,11 +305,11 @@ def parseTCP():
 			print "LSF"
 		elif(data[0] == "DEL"):
 			print "DEL"
-		elif(data[0] == "OUT"):
+		"""elif(data[0] == "OUT"):
 			s.close()
 			print '\tOut'
 			parseTCP()
-			return
+			return"""
 
 		s.close()
 
