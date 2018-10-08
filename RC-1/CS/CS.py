@@ -156,7 +156,7 @@ def parseTCP():
 				conn.sendall("DLR OK\n")
 			s.close()
 			print "\tDeleted"
-			parseTCP()
+			return
 
 		elif(data[0] == "BCK"):
 			print data
