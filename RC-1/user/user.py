@@ -1,5 +1,6 @@
 
 
+
 '''
 everything related to the user 
 
@@ -224,13 +225,8 @@ def parse():
 
 			print "delete"
 		elif(list_str[0] == "logout"):  # JA ESTA A FUNCIONAR
-
-			#s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-			#s.connect((HOST	, PORT))
-			
-			#s.send("AUT "+username+" "+password+"\n")
 			print 'User: ' + '\"' + username + '\"' + ' logged out\n'		
-			#s.sendall("OUT\n")
+
 
 			#faz com que seja preciso fazer login outra vez
 			#global login_counter
@@ -239,13 +235,8 @@ def parse():
 			login_counter = 0
 
 		elif(list_str[0] == "exit"):    # JA ESTA A FUNCIONAR ( SO QUANDO O UTILIZADOR ESTA LOGGED IN ? )
-			s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-			s.connect((HOST	, PORT))
-			
-			s.send("AUT "+username+" "+password+"\n")
 		
 			print "exit"
-			s.sendall("OUT\n")
 			break;
 		else:
 			print "Invalid option!"
