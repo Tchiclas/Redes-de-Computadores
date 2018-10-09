@@ -6,6 +6,7 @@ import socket
 import sys
 import os
 import time
+import shutil
 
 #numero do grupo
 GN = 78
@@ -29,6 +30,9 @@ def nextWord(connUser):
 	print 'word: ' +word
 	return word
 
+
+
+	
 
 
 
@@ -63,23 +67,6 @@ def handlerRGR(status):
 	if( status != 'OK'):
 		print 'ERR'   #QUAL E A MENSAGEM DE REGISTO NAO POSSIVEL? - CONFIRMAR
 
-def handlerLSF(user, directory, server_address): #NOT DONE!!!!!!
-	cwd = os.getcwd() #path of current working directory
-	cwd = cwd + '/' + directory
-	if(os.path.exists(cwd)):
-		os.chdir(cwd) #open directory
-		cwd = os.getcwd()
-		list_files = os.listdir(cwd)
-		nFiles = len(list_files)
-		element = 'LFD ' + str(nFiles)  #reply
-		connUser.sendall(element)
-		for file in list_files:
-			created= os.stat(file).st_mtime
-			size = os.stat(file).st_size
-			date_time = time.strftime("%d.%m.%Y %H:%M:%S", time.gmtime(created))
-			element =  ' ' + file + ' ' + date_time + ' ' + str(size)
-			connUser.sendall(element) #file details
-		connUSer.sendall('\n')
 
 def parseTCP():
 	current_user = ''
@@ -213,8 +200,27 @@ def parseUDP():
 				print 'UAR ERR'
 		elif(command[0] == "LSF"):
 			user = command[1]
-			dir = command[2]
-			handlerLSF(user, dir, addr)
+			directory = command[2]
+			cwd = os.getcwd() #path of current working directory
+			cwd = cwd + '/user_' + user + '/' + directory
+			if(os.path.exists(cwd)):
+				#os.chdir(cwd) #open directory
+				#cwd = os.getcwd()
+				list_files = os.listdir(cwd)
+				nFiles = len(list_files)
+				element = 'LFD ' + str(BSPORT) + ' ' + BSNAME + ' ' + str(nFiles)  #reply
+				sockBS.sendto(element, addr) #LFD portBS IPBS N 
+			
+				print str(list_files)
+				for f in list_files:
+					print f
+					created= os.stat(f).st_mtime
+					size = os.stat(f).st_size
+					date_time = time.strftime("%d.%m.%Y %H:%M:%S", time.gmtime(created))
+					element =  ' ' + f + ' ' + date_time + ' ' + str(size)
+					sockBS.sendto(element, addr)
+				sockBS.sendto('\n', addr)
+
 		elif(command[0] == "LSU"):
 			if (len(command)== 3):
 				user = str(command[1])
@@ -231,9 +237,16 @@ def parseUDP():
 				sockBS.sendto('LUR ERR', addr)
 		elif(command[0] == "DLB"):
 			user = command[1]
-			dir = command[2]
-			handlerDLB(user,dir)
-		#Devia existir algum else aqui?
+			directory = command[2]
+			cwd = os.getcwd()
+			user_dir = cwd + '/user_' + user
+			dir_path = user_dir + '/' + directory
+			try:
+				shutil.rmtree(dir_path)
+				sockBS.sendto('DBR OK\n', addr)
+			except IOError, e:
+				sockBS.sento('DBR NOK\n', addr)
+				#Devia existir algum else aqui?
 
 		
 create_backup_server()
