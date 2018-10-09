@@ -91,11 +91,7 @@ def user_ver(username,password):
 
 	
 #------chamar no inicio
-def parseTCP(s):
-
-
-
-	conn, addr = s.accept()
+def parseTCP(conn):
 
 	string = conn.recv(4096)
 	data = string.split()
@@ -283,12 +279,16 @@ if(len(sys.argv) != 1 and sys.argv[1] == "-p"):
 
 
 pid = os.fork()
-if(pid == 0):
+if(pid == 0):  # o filho vai tratar de responder a todos os pedidos TCP
 	s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 	s.bind(("", PORT))
 	s.listen(1)
 	while(1):
-		parseTCP(s) # o filho vai tratar de responder a todos os pedidos TCP
+		conn, addr = s.accept()
+		childpid = os.fork()
+		if(childpid == 0):
+			parseTCP(conn) # o os filhos do filho lidam com os pedidos sendo que vai existir 1 filho do filho por cada user
+			break;
 else:
 	parseUDP()	# o pai vai tratar de responder a todos os pedidos UDP
 
