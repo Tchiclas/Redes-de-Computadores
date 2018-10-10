@@ -183,11 +183,11 @@ def parseTCP(conn):
 						splitLSF = dataLSF.split()
 						n = int(splitLSF[3])
 						print str(n)
-						""" while i < n:
+						while i < n:
 							dataLSF, address = sockBCK.recvfrom(4096)
 							reply = reply + dataLSF
 							#print 'reply: ' + reply
-							i = i + 1 """
+							i = i + 1 
 						sockBCK.close()
 						print 'reply:' + reply
 						reply = reply.split()

@@ -194,16 +194,22 @@ def parse():
 
 			s.close()
 
-		elif(list_str[0] == "dirlist"):  # A PARTE DO USER JA ESTA A FUNCIONAR
-
+		elif(list_str[0] == "dirlist"):  
 			s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 			s.connect((HOST	, PORT))
 
 			s.sendall("AUT "+username+" "+password+"\n")
 			print  s.recv(1024)
 
+
 			s.send("LSD\n")
-			print s.recv(5120)
+			tag = s.recv(5120)
+			tag = tag.split()
+			i = 0
+			while ( i< int(tag[1])):
+				print s.recv(1024)
+				i = i + 1
+
 			s.close()
 
 		elif(list_str[0] == "filelist"):    #A PARTE DO USER JA ESTA A FUNCIONAR
@@ -218,12 +224,16 @@ def parse():
 			directory = list_str[1]
 
 			s.sendall("LSF "+directory+"\n")
+
 			data = s.recv(4096) #LFD IPBS portBS N fileinfo
 			data = data.split()
 
 
-			message = directory + ': ' + ' '.join(data[4:])
-			print message #por agora esta assim pq nao sei qual e o formato que se quer apresentar
+			i = 0
+			while ( i< int(data[3])):
+				print s.recv(1024)
+				i = i + 1
+
 			s.close()
 
 		elif(list_str[0] == "delete"):
