@@ -388,10 +388,10 @@ def parseTCP(conn):
 			return
 		listdir = os.listdir(os.getcwd()+'/user_' + username)
 		counter = len(listdir)
-		rec = "LDR "+ str(counter)+ ' '
+		rec = "LDR "+ str(counter)
 		conn.sendall(rec)
 		for diri in listdir:
-			conn.sendall(diri+ ' ')
+			conn.sendall(' ' + diri)
 		conn.sendall('\n')
 		
 

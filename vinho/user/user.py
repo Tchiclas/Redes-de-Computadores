@@ -310,12 +310,13 @@ def parse():
 
 
 				s.send("LSD\n")
-				tag = s.recv(5120)
+				tag = nextWord(s)
 				print tag
-				tag = tag.split()
+				n_files = nextWord(s)
+                #print n_files
 				i = 0
-				while ( i< int(tag[1])):
-					print s.recv(1024)
+				while ( i< int(n_files)):
+					print nextWord(s)
 					i = i + 1
 
 				s.close()

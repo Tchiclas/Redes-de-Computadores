@@ -57,6 +57,14 @@ def register_user(username,password):
 		user_dir_path = cwd + '/' + user_dir
 		os.makedirs(user_dir_path)
 	except (IOError, OSError),e:
+		sockBYE = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+		server_address = (BSNAME, CSPORT)
+		message = 'UNR ' +BSNAME + ' ' + str(BSPORT)
+		print message
+		print 'vou enviar msg'
+		sockBYE.sendto(message, server_address)
+		print 'enviadacom sucesso'
+		sockBYE.close()
 		return
 
 #handles flag values
@@ -78,6 +86,14 @@ def create_backup_server():
 			i = i + 2
 	except IndexError,e:
 		print e
+		sockBYE = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+		server_address = (BSNAME, CSPORT)
+		message = 'UNR ' +BSNAME + ' ' + str(BSPORT)
+		print message
+		print 'vou enviar msg'
+		sockBYE.sendto(message, server_address)
+		print 'enviadacom sucesso'
+		sockBYE.close()
 		return
 #atencao tem de se acrescentar o \n no final do ok!!!!!
 def handlerRGR(status):
@@ -96,7 +112,15 @@ def parseTCP():
 			sockUser.listen(1)
 			connUser, addrUser = sockUser.accept()
 		except (socket.error,socket.gaierror),e:
-			sockUser.close()
+			sockUser.close() # termina ligacao TCP user
+			sockBYE = socket.socket(socket.AF_INET, socket.SOCK_DGRAM) # disconnects from CS
+			server_address = (BSNAME, CSPORT)
+			message = 'UNR ' +BSNAME + ' ' + str(BSPORT)
+			print message
+			print 'vou enviar msg'
+			sockBYE.sendto(message, server_address)
+			print 'enviadacom sucesso'
+			sockBYE.close()
 			return
 		#missingCommand = False
 		#dataUser = ''
@@ -125,6 +149,14 @@ def parseTCP():
 					try:
 						connUser.sendall("AUR OK\n")
 					except socket.error,e:
+						sockBYE = socket.socket(socket.AF_INET, socket.SOCK_DGRAM) # disconnects from CS
+						server_address = (BSNAME, CSPORT)
+						message = 'UNR ' +BSNAME + ' ' + str(BSPORT)
+						print message
+						print 'vou enviar msg'
+						sockBYE.sendto(message, server_address)
+						print 'enviadacom sucesso'
+						sockBYE.close()
 						sockUser.close()
 						return
 					current_user = us
@@ -135,6 +167,14 @@ def parseTCP():
 						connUser.sendall("AUR NOK")
 					except socket.error,e:
 						sockUser.close()
+						sockBYE = socket.socket(socket.AF_INET, socket.SOCK_DGRAM) # disconnects from CS
+						server_address = (BSNAME, CSPORT)
+						message = 'UNR ' +BSNAME + ' ' + str(BSPORT)
+						print message
+						print 'vou enviar msg'
+						sockBYE.sendto(message, server_address)
+						print 'enviadacom sucesso'
+						sockBYE.close()
 						return
 
 			elif (requestUser == 'UPL'):
@@ -154,8 +194,8 @@ def parseTCP():
 						print 'filename:' + filename
 						date = nextWord(connUser)
 						print 'date:' + date
-						time = nextWord(connUser)
-						print 'time:' + time
+						time_ = nextWord(connUser)
+						print 'time:' + time_
 						size = int(nextWord(connUser))
 						print 'size:' + str(size)
 						f = open(filename, 'w') #append so I can write data more than once
@@ -171,6 +211,14 @@ def parseTCP():
 				except (IOError,OSError,socket.error),e:
 					print e
 					sockUser.close()
+					sockBYE = socket.socket(socket.AF_INET, socket.SOCK_DGRAM) # disconnects from CS
+					server_address = (BSNAME, CSPORT)
+					message = 'UNR ' +BSNAME + ' ' + str(BSPORT)
+					print message
+					print 'vou enviar msg'
+					sockBYE.sendto(message, server_address)
+					print 'enviadacom sucesso'
+					sockBYE.close()
 					return
 				
 			elif (requestUser == 'RSB'):
@@ -206,9 +254,25 @@ def parseTCP():
 
 				except (OSError,IOError,socket.error),e:
 					print "ERR"
+					sockBYE = socket.socket(socket.AF_INET, socket.SOCK_DGRAM) # disconnects from CS
+					server_address = (BSNAME, CSPORT)
+					message = 'UNR ' +BSNAME + ' ' + str(BSPORT)
+					print message
+					print 'vou enviar msg'
+					sockBYE.sendto(message, server_address)
+					print 'enviadacom sucesso'
+					sockBYE.close()
 					sockUser.close()
 	except (socket.error,IOError,OSError,IndexError),e:
 		print "ERR"
+		sockBYE = socket.socket(socket.AF_INET, socket.SOCK_DGRAM) # disconnects from CS
+		server_address = (BSNAME, CSPORT)
+		message = 'UNR ' +BSNAME + ' ' + str(BSPORT)
+		print message
+		print 'vou enviar msg'
+		sockBYE.sendto(message, server_address)
+		print 'enviadacom sucesso'
+		sockBYE.close()
 		sockUser.close()
 
 def parseUDP():
@@ -223,6 +287,14 @@ def parseUDP():
 	except (socket.error,socket.gaierror),e:
 		print "ERR"
 		sock.close()
+		sockBYE = socket.socket(socket.AF_INET, socket.SOCK_DGRAM) # disconnects from CS
+		server_address = (BSNAME, CSPORT)
+		message = 'UNR ' +BSNAME + ' ' + str(BSPORT)
+		print message
+		print 'vou enviar msg'
+		sockBYE.sendto(message, server_address)
+		print 'enviadacom sucesso'
+		sockBYE.close()
 		return
 	#messages from CS
 	try:
@@ -232,6 +304,14 @@ def parseUDP():
 	except (socket.error,socket.gaierror),e:
 		print "ERR"
 		sockBS.close()
+		sockBYE = socket.socket(socket.AF_INET, socket.SOCK_DGRAM) # disconnects from CS
+		server_address = (BSNAME, CSPORT)
+		message = 'UNR ' +BSNAME + ' ' + str(BSPORT)
+		print message
+		print 'vou enviar msg'
+		sockBYE.sendto(message, server_address)
+		print 'enviadacom sucesso'
+		sockBYE.close()
 		return
 
 	while 1:
@@ -240,6 +320,14 @@ def parseUDP():
 		except socket.error,e:
 			print "ERR"
 			sockBS.close()
+			sockBYE = socket.socket(socket.AF_INET, socket.SOCK_DGRAM) # disconnects from CS
+			server_address = (BSNAME, CSPORT)
+			message = 'UNR ' +BSNAME + ' ' + str(BSPORT)
+			print message
+			print 'vou enviar msg'
+			sockBYE.sendto(message, server_address)
+			print 'enviadacom sucesso'
+			sockBYE.close()
 			return
 		command = data.split()
 		main_comand = command[0]
@@ -277,6 +365,14 @@ def parseUDP():
 					os.chdir(cwd) #close directory
 			except (OSError,IOError,socket.error),e:
 				sockBS.close()
+				sockBYE = socket.socket(socket.AF_INET, socket.SOCK_DGRAM) # disconnects from CS
+				server_address = (BSNAME, CSPORT)
+				message = 'UNR ' +BSNAME + ' ' + str(BSPORT)
+				print message
+				print 'vou enviar msg'
+				sockBYE.sendto(message, server_address)
+				print 'enviadacom sucesso'
+				sockBYE.close()
 				return
 
 
@@ -297,6 +393,14 @@ def parseUDP():
 					sockBS.sendto('LUR ERR', addr)
 			except (OSError,IOError,socket.error),e:
 				sockBS.close()
+				sockBYE = socket.socket(socket.AF_INET, socket.SOCK_DGRAM) # disconnects from CS
+				server_address = (BSNAME, CSPORT)
+				message = 'UNR ' +BSNAME + ' ' + str(BSPORT)
+				print message
+				print 'vou enviar msg'
+				sockBYE.sendto(message, server_address)
+				print 'enviadacom sucesso'
+				sockBYE.close()
 				return
 		elif(main_comand == "DLB"):
 			user = command[1]
@@ -317,6 +421,14 @@ def parseUDP():
 				
 			except (OSError,IOError,socket.error),e:
 				sockBS.close()
+				sockBYE = socket.socket(socket.AF_INET, socket.SOCK_DGRAM) # disconnects from CS
+				server_address = (BSNAME, CSPORT)
+				message = 'UNR ' +BSNAME + ' ' + str(BSPORT)
+				print message
+				print 'vou enviar msg'
+				sockBYE.sendto(message, server_address)
+				print 'enviadacom sucesso'
+				sockBYE.close()
 				return
 
 		
@@ -332,3 +444,4 @@ try:
 		parseUDP()	# o pai vai tratar de responder a todos os pedidos UDP
 except OSError,e:
 	print "ERR"
+	
