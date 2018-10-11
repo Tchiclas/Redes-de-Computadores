@@ -255,12 +255,6 @@ def parse():
 						i = 0
 						n = int(nextWord(sockRST)) #N
 						reply = ''
-						"""while i < n:
-							dataRST, address = sockRST.recvfrom(4096) #filename date time size data
-							reply = reply + dataRST
-							#print 'reply: ' + reply
-							i = i + 1 
-						reply = reply.split()"""
 						i = 0
 						cwd = os.getcwd()
 						dir_path = cwd + '/' + directory
@@ -280,30 +274,19 @@ def parse():
 							size = int(nextWord(sockRST))
 							print 'size:' + str(size)
 							i = i + 1
-							if(size < 256):
-								f = open(filename, 'w') #append so I can write data more than once
-								dataRST= sockRST.recv(size) #receive data from file
+							if (filename in os.listdir(dir_path)):
+								f = open(filename, 'wb')
+								f.close()
+							left_size = size
+							f = open(filename, 'ab')
+							while(left_size > 0):
+								if(left_size < 256 or left_size == 256):
+									dataRST= sockRST.recv(left_size) #receive data from file
+								else:
+									dataRST= sockRST.recv(256) #receive data from file
 								f.write(dataRST)
-								f.close()
-							else:
-								finished = False
-								left_size = size
-								f = open(filename, 'a')#append so I can write data more than once
-								while (not finished):
-									print 'left_size:' + str(left_size)
-									dataRST = sockRST.recv(256) #receive data from file
-									left_size = left_size - 256
-									f.write(dataRST)
-									if(left_size < 256):
-										print 'ultimo left_size:' + str(left_size)
-										finished = True
-								if(left_size != 0):
-									dataResto= sockRST.recv(size%256) #receive data from file
-									f.write(dataResto)
-									left_size = 0
-
-										
-								f.close()
+								left_size = left_size - len(dataRST)
+							f.close()
 						sockRST.close()
 						os.chdir(cwd) #close directory
 					else:
