@@ -7,6 +7,7 @@ import sys
 import os
 import time
 import shutil
+import signal
 
 #numero do grupo
 GN = 79
@@ -28,6 +29,20 @@ def nextWord(connUser):
 			word = word + char
 	print 'word:' +word
 	return word
+
+def signal_term_handler(signal, frame):
+	print 'got SIGTERM'
+	sockBYE = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+	server_address = (BSNAME, CSPORT)
+	message = 'UNR ' +BSNAME + ' ' + str(BSPORT)
+	print message
+	print 'vou enviar msg'
+	sockBYE.sendto(message, server_address)
+	print 'enviadacom sucesso'
+	sockBYE.close()
+
+	sys.exit(0)
+	
 
 
 
@@ -154,6 +169,7 @@ def parseTCP():
 					#UPL NOK?
 					connUser = ''
 				except (IOError,OSError,socket.error),e:
+					print e
 					sockUser.close()
 					return
 				
@@ -304,9 +320,11 @@ create_backup_server()
 try:
 	pid = os.fork()
 	if(pid == 0):
+		signal.signal(signal.SIGINT, signal_term_handler)
 		while(1):
 			parseTCP() # o filho vai tratar de responder a todos os pedidos TCP
 	else:	
+		signal.signal(signal.SIGINT, signal_term_handler)
 		parseUDP()	# o pai vai tratar de responder a todos os pedidos UDP
 except OSError,e:
 	print "ERR"

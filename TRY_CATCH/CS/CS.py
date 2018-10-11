@@ -10,13 +10,13 @@ import sys
 import os
 import shutil
 import time
+import random
 
 #o valor generico sera 58000 mais o numero do grupo
 GN = 79  #GN sera o numero do grupo
 
 HOST = socket.gethostname()
 PORT = 58000 +GN
-lastBS = -2
 
 
 
@@ -64,23 +64,13 @@ def parseUDP():
 				exists = False  #BS is already registed
 				try: #os.listdir,os.getcwd,open,write,close
 					if("BS_list.txt" in os.listdir(os.getcwd())):
-						BS = open("BS_list.txt","r")
-						line = BS.read()
-						split = line.split()
-						index = 0
-						length = len(split)
-						while index < length:
-							if(split[index] == portnum): # se tiver uma porta igual 
-								exists = True
-							index = index + 2
-						BS.close()
 						if (not exists):
 							BS = open("BS_list.txt","a")
-							BS.write(" "+portnum+" "+ portname)
+							BS.write(portname+" "+ portnum+"\n")
 							BS.close()
 					else:
 						BS = open("BS_list.txt","w")
-						BS.write(portnum+" "+ portname)
+						BS.write(portname+" "+ portnum+"\n")
 						BS.close()
 				except (IOError,OSError),e:
 					sockBS.sendto("RGR NOK\n", (address))
@@ -95,6 +85,17 @@ def parseUDP():
 				except socket.error,e:
 					print 'ERR'
 					return
+		elif(regCommand == "UNR"):
+			BS = open("BS_list.txt","r")
+			lines = BS.readlines()
+			BS.close()
+
+			BS = open("BS_list.txt","w")
+			for line in lines:
+				print line
+				if line!=commandBS[1]+" "+commandBS[2]+"\n":   #"IPbs port\n"
+					BS.write(line)
+			BS.close()
 
 
 def user_ver(username,password):
@@ -274,18 +275,18 @@ def parseTCP(conn):
 								os.makedirs(directory_path)
 
 								BS = open("BS_list.txt","r")
-								line = BS.read()
-								line = line.split()
-								index = lastBS + 2
-								length = len(line)
-								if(not index < length):
-									index = 0
-								portBS = line[index]
-								IPBS = line[index+1]
+	#IPBS portBS				
+								BSav = BS.readlines()
+								line = random.choice(BSav).split()
+								print line
+								IPBS = line[0]
+								portBS = line[1]
+								BS.close()
+
+
 								fileIP = open(directory_path+'/IP_port.txt', 'w')
 								fileIP.write(portBS + ' ' + IPBS)
 								fileIP.close()
-								lastBS = index
 								print 'BCK ' + username + ' ' + directory + ' ' + IPBS +' '+ portBS
 								#LSU request to BS
 								print 'vou enviar LSU'
@@ -316,18 +317,16 @@ def parseTCP(conn):
 							os.makedirs(directory_path)
 
 							BS = open("BS_list.txt","r")
-							line = BS.read()
-							line = line.split()
-							index = lastBS + 2
-							length = len(line)
-							if(not index < length):
-								index = 0
-							portBS = line[index]
-							IPBS = line[index+1]
+							BSav = BS.readlines()
+							line = random.choice(BSav).split()
+							print line
+							IPBS = line[0]
+							portBS = line[1]
+							BS.close()
+
 							fileIP = open(directory_path+'/IP_port.txt', 'w')
 							fileIP.write(portBS + ' ' + IPBS)
 							fileIP.close()
-							lastBS = index
 							print 'BCK ' + username + ' ' + directory + ' ' + IPBS +' '+ portBS
 							#LSU request to BS
 							sockBCK = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
