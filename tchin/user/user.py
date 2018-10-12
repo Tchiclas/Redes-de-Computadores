@@ -122,11 +122,13 @@ def parse():
 
 				s.sendall("DLU\n")
 				data = s.recv(1024)	
+				print "resposta do CS ao deluser: " + data
 			except socket.error,e:
 				print "ERR: socket error\n deluser attempt unsuccessful"
 				return
 
 			if(data == "DLR OK\n"):
+
 				print "User deleted!"
 				login_counter = 0
 			else:

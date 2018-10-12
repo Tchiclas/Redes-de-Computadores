@@ -27,7 +27,6 @@ def nextWord(connUser):
 			break
 		if(not(word == '' and char == ' ')):
 			word = word + char
-	print 'word:' +word
 	return word
 
 def signal_term_handler(signal, frame):
@@ -35,10 +34,7 @@ def signal_term_handler(signal, frame):
 	sockBYE = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 	server_address = (BSNAME, CSPORT)
 	message = 'UNR ' +BSNAME + ' ' + str(BSPORT)
-	print message
-	print 'vou enviar msg'
 	sockBYE.sendto(message, server_address)
-	print 'enviadacom sucesso'
 	sockBYE.close()
 
 	sys.exit(0)

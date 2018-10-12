@@ -183,7 +183,8 @@ def parseTCP(conn):
 			cwd = os.getcwd()
 			user_dir = cwd + '/user_' + username
 			user_file = cwd + '/user_' + username + '.txt'
-			if (user_file in os.listdir(cwd)): #user has dir
+			tocheck ='user_'+username
+			if (tocheck in os.listdir(cwd)): #user has dir
 				if (len(os.listdir(user_dir)) == 0):
 					os.rmdir(user_dir)
 					os.remove(user_file)
@@ -194,8 +195,7 @@ def parseTCP(conn):
 			else:
 				os.remove(user_file)
 				conn.sendall("DLR OK\n")
-			
-			return
+		
 		except (socket.error,IOError),e:
 			print 'ERR: DLU command unsuccessful'
 			return
