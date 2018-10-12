@@ -193,7 +193,7 @@ def parseTCP(conn):
 					conn.sendall("DLR NOK\n")
 			else:
 				os.remove(user_file)
-				conn.sendall("DLR NOK\n")
+				conn.sendall("DLR OK\n")
 			
 			return
 		except (socket.error,IOError),e:

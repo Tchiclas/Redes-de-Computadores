@@ -303,7 +303,7 @@ def parse():
 				s.connect((HOST	, PORT))
 
 				s.sendall("AUT "+username+" "+password+"\n")
-				print  s.recv(1024)
+				s.recv(1024)
 
 
 				s.send("LSD\n")
